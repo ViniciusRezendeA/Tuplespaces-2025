@@ -1,0 +1,8 @@
+put <reserva,hotel,quarto101>
+put <reserva,hotel,quarto102>
+read <reserva,hotel,[^,]+>
+take <reserva,hotel,quarto101>
+read <reserva,hotel,[^,]+>
+getTupleSpacesState
+take <reserva,hotel,quarto102>
+exit

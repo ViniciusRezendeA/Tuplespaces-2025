@@ -1,0 +1,22 @@
+syntax = "proto3";
+package pt.ulisboa.tecnico.tuplespaces.centralized.contract;
+
+import "TupleSpaces.proto";
+
+
+
+message RequestResponse {
+    repeated string tuple = 1;
+}
+
+
+message EmptyResponse {}
+//Commutation between the front-end and the servers
+service ReplicaServer {
+  rpc put(PutRequest) returns (PutResponse);
+  rpc read(ReadRequest) returns (ReadResponse);
+  rpc request(TakeRequest) returns (RequestResponse);
+  rpc take(TakeRequest) returns (TakeResponse);
+  rpc release(TakeRequest) returns (EmptyResponse);
+  rpc getTupleSpacesState(GetTupleSpacesStateRequest) returns (GetTupleSpacesStateResponse);
+}

@@ -1,0 +1,14 @@
+put <vaga,sd,turno1>
+put <vaga,sd,turno2>
+put <vaga,sd,turno3>
+put <vaga,sd,turno4>
+getTupleSpacesState
+take <vaga,sd,turno.*>
+getTupleSpacesState
+take <vaga,sd,turno.*>
+getTupleSpacesState
+take <vaga,sd,turno.*>
+getTupleSpacesState
+take <vaga,sd,turno.*>
+getTupleSpacesState
+exit

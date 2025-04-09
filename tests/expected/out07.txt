@@ -1,0 +1,18 @@
+ClientMain
+> OK
+
+> OK
+
+> OK
+<vaga,sd,turno1>
+
+> OK
+<vaga,sd,turno2>
+
+> OK
+[<vaga,sd,turno1>]
+
+> OK
+<vaga,sd,turno1>
+
+> 

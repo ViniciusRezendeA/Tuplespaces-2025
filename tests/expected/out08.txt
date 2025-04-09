@@ -1,0 +1,21 @@
+ClientMain
+> OK
+
+> OK
+
+> OK
+<reserva,hotel,quarto101>
+
+> OK
+<reserva,hotel,quarto101>
+
+> OK
+<reserva,hotel,quarto102>
+
+> OK
+[<reserva,hotel,quarto102>]
+
+> OK
+<reserva,hotel,quarto102>
+
+> 
