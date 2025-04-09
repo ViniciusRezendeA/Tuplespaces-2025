@@ -14,9 +14,8 @@ Distributed Systems Project 2025
 
 | Number | Name               | User                                   | Email                                                  |
 |--------|--------------------|----------------------------------------|--------------------------------------------------------|
-| 107079 | Diogo Rodrigues    | <https://github.com/diogoadr>          | <mailto:diogo.d.rodrigues@tecnico.ulisboa.pt>          |
 | 1115485  | Vinicius Moreira   | <https://github.com/ViniciusRezendeA>  | <mailto:vinicius.r.arantes@tecnico.ulisboa.pt>         |
-| 107219 | David Ferreira     | <https://github.com/David-LEIC-IST>    | <mailto:david.r.a.v.ferreira@tecnico.ulisboa.pt>       |
+
 >
 
 ## Getting Started
