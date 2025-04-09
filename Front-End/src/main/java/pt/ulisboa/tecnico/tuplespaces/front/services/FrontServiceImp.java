@@ -27,6 +27,8 @@ import pt.ulisboa.tecnico.tuplespaces.centralized.contract.TupleSpacesOuterClass
 import pt.ulisboa.tecnico.tuplespaces.centralized.contract.TupleSpacesOuterClass.ReadResponse;
 import pt.ulisboa.tecnico.tuplespaces.centralized.contract.TupleSpacesOuterClass.TakeRequest;
 import pt.ulisboa.tecnico.tuplespaces.centralized.contract.TupleSpacesOuterClass.TakeResponse;
+import pt.ulisboa.tecnico.tuplespaces.front.colletors.ResponseCollector;
+import pt.ulisboa.tecnico.tuplespaces.front.enums.OperationType;
 import pt.ulisboa.tecnico.tuplespaces.front.interceptors.MetadataCredentials;
 import pt.ulisboa.tecnico.tuplespaces.front.interceptors.MetadataInterceptor;
 import pt.ulisboa.tecnico.tuplespaces.front.observers.GetTupleSpacesStateObserver;
@@ -52,23 +54,6 @@ public class FrontServiceImp extends TupleSpacesGrpc.TupleSpacesImplBase {
     private final ExecutorService backgroundExecutor = Executors.newCachedThreadPool();
 
     // Classe para representar operações pendentes
-    private class PendingOperation {
-        enum OperationType {
-            PUT, TAKE, READ
-        }
-
-        private OperationType type;
-        private Object request;
-        private StreamObserver<?> responseObserver;
-        private int[] delays;
-
-        public PendingOperation(OperationType type, Object request, StreamObserver<?> responseObserver, int[] delays) {
-            this.type = type;
-            this.request = request;
-            this.responseObserver = responseObserver;
-            this.delays = delays;
-        }
-    }
 
     public FrontServiceImp(List<String> hosts_List) {
         stubs = new ArrayList<ReplicaServerGrpc.ReplicaServerStub>();
@@ -114,7 +99,7 @@ public class FrontServiceImp extends TupleSpacesGrpc.TupleSpacesImplBase {
                     debug("Client " + clientId + " has take in progress, queueing PUT operation");
 
                     // Adicionar à fila de operações pendentes
-                    addPendingOperation(clientId, PendingOperation.OperationType.PUT, request, responseObserver,
+                    addPendingOperation(clientId, OperationType.PUT, request, responseObserver,
                             delays);
                     return;
                 }
@@ -182,7 +167,7 @@ public class FrontServiceImp extends TupleSpacesGrpc.TupleSpacesImplBase {
             // Se houver operações pendentes, não execute imediatamente
             if (hasPendingOperations(clientId)) {
                 debug("Client " + clientId + " has pending operations, queueing READ operation");
-                addPendingOperation(clientId, PendingOperation.OperationType.READ, request, responseObserver, delays);
+                addPendingOperation(clientId, OperationType.READ, request, responseObserver, delays);
                 return;
             }
 
@@ -249,7 +234,7 @@ public class FrontServiceImp extends TupleSpacesGrpc.TupleSpacesImplBase {
             // Se houver operações pendentes, adicionar à fila
             if (hasPendingOperations(clientId)) {
                 debug("Client " + clientId + " has pending operations, queueing TAKE operation");
-                addPendingOperation(clientId, PendingOperation.OperationType.TAKE, request, responseObserver, delays);
+                addPendingOperation(clientId, OperationType.TAKE, request, responseObserver, delays);
                 return;
             }
 
@@ -446,7 +431,7 @@ public class FrontServiceImp extends TupleSpacesGrpc.TupleSpacesImplBase {
         return clientLocks.computeIfAbsent(clientId, k -> new ReentrantLock());
     }
 
-    private void addPendingOperation(int clientId, PendingOperation.OperationType type,
+    private void addPendingOperation(int clientId, OperationType type,
             Object request, StreamObserver<?> responseObserver, int[] delays) {
         List<PendingOperation> operations = pendingOperations.computeIfAbsent(clientId, k -> new ArrayList<>());
         operations.add(new PendingOperation(type, request, responseObserver, delays));
@@ -459,6 +444,7 @@ public class FrontServiceImp extends TupleSpacesGrpc.TupleSpacesImplBase {
         return operations != null && !operations.isEmpty();
     }
 
+    @SuppressWarnings("unchecked")
     private void processPendingOperations(int clientId) {
         List<PendingOperation> operations = pendingOperations.get(clientId);
         if (operations == null || operations.isEmpty()) {
@@ -467,30 +453,32 @@ public class FrontServiceImp extends TupleSpacesGrpc.TupleSpacesImplBase {
         }
 
         // Processar a primeira operação pendente
-        PendingOperation operation = operations.remove(0);
-        debug("Processing pending " + operation.type + " operation for client " + clientId);
+        PendingOperation operation = operations.get(0);
+        OperationType type = operation.getType();
+
+        debug("Processing pending " + type + " operation for client " + clientId);
 
         try {
-            switch (operation.type) {
+            switch (type) {
                 case PUT:
-                    executePut((PutRequest) operation.request,
-                            (StreamObserver<PutResponse>) operation.responseObserver,
-                            operation.delays);
+                    executePut((PutRequest) operation.getRequest(),
+                            (StreamObserver<PutResponse>) operation.getResponseObserver(),
+                            operation.getDelays());
                     break;
                 case TAKE:
                     // Marcar que temos um take em andamento novamente
                     takeInProgress.put(clientId, true);
-                    executeTake((TakeRequest) operation.request,
-                            (StreamObserver<TakeResponse>) operation.responseObserver,
-                            operation.delays);
+                    executeTake((TakeRequest) operation.getRequest(),
+                            (StreamObserver<TakeResponse>) operation.getResponseObserver(),
+                            operation.getDelays());
                     break;
                 case READ:
-                    executeRead((ReadRequest) operation.request,
-                            (StreamObserver<ReadResponse>) operation.responseObserver,
-                            operation.delays);
+                    executeRead((ReadRequest) operation.getRequest(),
+                            (StreamObserver<ReadResponse>) operation.getResponseObserver(),
+                            operation.getDelays());
                     break;
                 default:
-                    debug("Unknown operation type: " + operation.type);
+                    debug("Unknown operation type: " + type);
             }
         } catch (Exception e) {
             debug("Error processing pending operation: " + e.getMessage());
@@ -498,7 +486,7 @@ public class FrontServiceImp extends TupleSpacesGrpc.TupleSpacesImplBase {
         }
 
         // Se não for um TAKE e houver mais operações, continue processando
-        if (operation.type != PendingOperation.OperationType.TAKE && !operations.isEmpty()) {
+        if (type != OperationType.TAKE && !operations.isEmpty()) {
             debug("Processing next pending operation for client " + clientId);
             processPendingOperations(clientId);
         }

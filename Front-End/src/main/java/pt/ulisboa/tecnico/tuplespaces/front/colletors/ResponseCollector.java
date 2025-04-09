@@ -1,4 +1,4 @@
-package pt.ulisboa.tecnico.tuplespaces.front.services;
+package pt.ulisboa.tecnico.tuplespaces.front.colletors;
 
 import java.util.ArrayList;
 import java.util.List;
