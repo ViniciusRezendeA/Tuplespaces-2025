@@ -53,8 +53,6 @@ public class FrontServiceImp extends TupleSpacesGrpc.TupleSpacesImplBase {
     // Usar ExecutorService em vez de Thread direta
     private final ExecutorService backgroundExecutor = Executors.newCachedThreadPool();
 
-    // Classe para representar operações pendentes
-
     public FrontServiceImp(List<String> hosts_List) {
         stubs = new ArrayList<ReplicaServerGrpc.ReplicaServerStub>();
         hosts_List.forEach(
